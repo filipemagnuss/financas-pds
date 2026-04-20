@@ -1,24 +1,24 @@
 'use client';
 
-import { useSignUp } from "@clerk/nextjs/legacy";
+import { useSignIn } from "@clerk/nextjs/legacy";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
 import Link from "next/link";
 import { translateClerkError } from "../../_lib/translate-clerk-error";
 
-export default function SignUpForm() {
-  const { isLoaded, signUp, setActive } = useSignUp();
+export default function ForgotPasswordForm() {
+  const { isLoaded, signIn, setActive } = useSignIn();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
-  const [pendingVerification, setPendingVerification] = useState(false);
+  const [password, setPassword] = useState("");
+  const [pendingReset, setPendingReset] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleRequestCode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isLoaded) return;
 
@@ -26,17 +26,19 @@ export default function SignUpForm() {
     setError("");
 
     try {
-      await signUp.create({ emailAddress: email, password });
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-      setPendingVerification(true);
+      await signIn.create({
+        strategy: "reset_password_email_code",
+        identifier: email,
+      });
+      setPendingReset(true);
     } catch (err) {
-      setError(translateClerkError(err, "Erro ao criar conta."));
+      setError(translateClerkError(err, "Não foi possível enviar o código."));
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleVerify = async (e: React.FormEvent) => {
+  const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isLoaded) return;
 
@@ -44,16 +46,20 @@ export default function SignUpForm() {
     setError("");
 
     try {
-      const completeSignUp = await signUp.attemptEmailAddressVerification({ code });
+      const result = await signIn.attemptFirstFactor({
+        strategy: "reset_password_email_code",
+        code,
+        password,
+      });
 
-      if (completeSignUp.status === "complete") {
-        await setActive({ session: completeSignUp.createdSessionId });
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
         router.push("/dashboard");
       } else {
-        setError("Não foi possível concluir a verificação. Tente novamente.");
+        setError("Não foi possível redefinir a senha. Tente novamente.");
       }
     } catch (err) {
-      setError(translateClerkError(err, "Código inválido."));
+      setError(translateClerkError(err, "Código inválido ou senha fraca."));
     } finally {
       setIsLoading(false);
     }
@@ -73,7 +79,7 @@ export default function SignUpForm() {
             Finanças <span className="text-emerald-400">IA</span>
           </h1>
           <p className="mt-1 text-sm text-slate-400">
-            {pendingVerification ? "Verifique seu e-mail para continuar." : "Crie sua conta."}
+            {pendingReset ? "Crie uma nova senha." : "Recupere o acesso à sua conta."}
           </p>
         </div>
 
@@ -83,8 +89,8 @@ export default function SignUpForm() {
           </div>
         )}
 
-        {pendingVerification ? (
-          <form onSubmit={handleVerify} className="space-y-5">
+        {pendingReset ? (
+          <form onSubmit={handleResetPassword} className="space-y-5">
             <div>
               <label htmlFor="code" className="block text-sm font-medium text-slate-300">
                 Código de verificação
@@ -107,16 +113,34 @@ export default function SignUpForm() {
               </div>
             </div>
 
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-slate-300">
+                Nova senha
+              </label>
+              <div className="mt-1.5">
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  suppressHydrationWarning
+                  className="block w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 py-2.5 text-white placeholder-slate-500 outline-none transition-all focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 sm:text-sm"
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+            </div>
+
             <button
               type="submit"
               disabled={isLoading || !isLoaded}
               className="mt-4 w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition-all hover:from-emerald-400 hover:to-teal-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50"
             >
-              {isLoading ? "Verificando..." : "Verificar código"}
+              {isLoading ? "Redefinindo..." : "Redefinir senha"}
             </button>
           </form>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleRequestCode} className="space-y-5">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-slate-300">
                 Email
@@ -135,44 +159,22 @@ export default function SignUpForm() {
               </div>
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-300">
-                Senha
-              </label>
-              <div className="mt-1.5">
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  suppressHydrationWarning
-                  className="block w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 py-2.5 text-white placeholder-slate-500 outline-none transition-all focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 sm:text-sm"
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-            </div>
-
-            <div id="clerk-captcha" />
-
             <button
               type="submit"
               disabled={isLoading || !isLoaded}
               className="mt-4 w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition-all hover:from-emerald-400 hover:to-teal-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50"
             >
-              {isLoading ? "Criando conta..." : "Criar conta"}
+              {isLoading ? "Enviando..." : "Enviar código"}
             </button>
           </form>
         )}
 
-        {!pendingVerification && (
-          <p className="mt-8 text-center text-sm text-slate-400">
-            Já tem uma conta?{' '}
-            <Link href="/sign-in" className="font-semibold text-emerald-400 hover:text-emerald-300">
-              Fazer login
-            </Link>
-          </p>
-        )}
+        <p className="mt-8 text-center text-sm text-slate-400">
+          Lembrou a senha?{' '}
+          <Link href="/sign-in" className="font-semibold text-emerald-400 hover:text-emerald-300">
+            Voltar ao login
+          </Link>
+        </p>
       </div>
     </div>
   );
