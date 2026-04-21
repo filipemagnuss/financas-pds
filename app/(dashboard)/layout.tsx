@@ -14,8 +14,6 @@ import {
   Settings,
   LogOut
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: Wallet, label: 'Transações', href: '/transacoes' },
@@ -71,7 +69,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </button>
         <div className="flex w-full items-center justify-between rounded-lg px-3 py-2.5">
           <div className="flex items-center gap-3 text-sm font-medium text-slate-400">
-             <UserButton afterSignOutUrl="/sign-in" />
+             <UserButton />
              <span>Minha Conta</span>
           </div>
         </div>
@@ -91,7 +89,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
              <span className="font-bold text-white">Finanças IA</span>
           </div>
         </div>
-        <UserButton afterSignOutUrl="/sign-in" />
+        <UserButton />
       </div>
 
       {sidebarOpen && (

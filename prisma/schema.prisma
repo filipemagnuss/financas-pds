@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../app/generated/prisma"
@@ -10,4 +8,79 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+enum TipoTransacao {
+  RECEITA
+  DESPESA
+  TRANSFERENCIA
+}
+
+model Usuario {
+  id        String   @id
+  email     String   @unique
+  criado_em DateTime @default(now())
+
+  contas     ContaBancaria[]
+  cartoes    CartaoCredito[]
+  categorias Categoria[]
+  transacoes Transacao[]
+}
+
+model ContaBancaria {
+  id          String  @id @default(uuid())
+  usuario_id  String
+  usuario     Usuario @relation(fields: [usuario_id], references: [id])
+  nome        String
+  saldo_atual Decimal @db.Decimal(10, 2)
+
+  transacoes Transacao[]
+}
+
+model CartaoCredito {
+  id             String  @id @default(uuid())
+  usuario_id     String
+  usuario        Usuario @relation(fields: [usuario_id], references: [id])
+  nome           String
+  limite_total   Decimal @db.Decimal(10, 2)
+  dia_fechamento Int
+  dia_vencimento Int
+
+  transacoes Transacao[]
+}
+
+model Categoria {
+  id         String        @id @default(uuid())
+  usuario_id String
+  usuario    Usuario       @relation(fields: [usuario_id], references: [id])
+  nome       String
+  tipo       TipoTransacao
+
+  transacoes Transacao[]
+}
+
+model Transacao {
+  id String @id @default(uuid())
+
+  usuario_id String
+  usuario    Usuario @relation(fields: [usuario_id], references: [id])
+
+  conta_id String?
+  conta    ContaBancaria? @relation(fields: [conta_id], references: [id])
+
+  cartao_id String?
+  cartao    CartaoCredito? @relation(fields: [cartao_id], references: [id])
+
+  categoria_id String
+  categoria    Categoria @relation(fields: [categoria_id], references: [id])
+
+  descricao      String
+  valor          Decimal  @db.Decimal(10, 2)
+  data_transacao DateTime
+
+  tipo TipoTransacao
+
+  is_recorrente  Boolean @default(false)
+  parcela_atual  Int?
+  total_parcelas Int?
 }

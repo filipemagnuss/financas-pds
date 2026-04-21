@@ -6,6 +6,7 @@ const isPublicRoute = createRouteMatcher([
   '/sign-up(.*)',
   '/forgot-password(.*)',
   '/sso-callback(.*)',
+  '/api/webhooks(.*)',
 ]);
 
 const isAuthRoute = createRouteMatcher([
