@@ -2,6 +2,7 @@ import { Webhook } from "svix";
 import { headers } from "next/headers";
 import type { WebhookEvent } from "@clerk/nextjs/server";
 import { prisma } from "@/app/lib/prisma";
+import { criarCategoriasPadrao } from "@/app/lib/seed";
 
 export async function POST(req: Request) {
   const secret = process.env.CLERK_WEBHOOK_SECRET;
@@ -31,21 +32,44 @@ export async function POST(req: Request) {
     return new Response("Assinatura inválida", { status: 400 });
   }
 
-  if (evt.type === "user.created" || evt.type === "user.updated") {
-    const { id, email_addresses } = evt.data;
-    const email = email_addresses[0]?.email_address;
-    if (!email) return new Response("Usuário sem email", { status: 400 });
+  try {
+    if (evt.type === "user.created" || evt.type === "user.updated") {
+      const { id, email_addresses } = evt.data;
+      const email = email_addresses[0]?.email_address;
+      if (!email) return new Response("Usuário sem email", { status: 400 });
 
-    await prisma.usuario.upsert({
-      where: { id },
-      create: { id, email },
-      update: { email },
-    });
+      await prisma.usuario.upsert({
+        where: { id },
+        create: { id, email },
+        update: { email },
+      });
+
+      if (evt.type === "user.created") {
+        try {
+          await criarCategoriasPadrao(id);
+        } catch (e) {
+          console.error("Falha ao criar categorias padrão:", e);
+        }
+      }
+    }
+
+    if (evt.type === "user.deleted" && evt.data.id) {
+      const userId = evt.data.id;
+      await prisma.$transaction([
+        prisma.transacao.deleteMany({ where: { usuario_id: userId } }),
+        prisma.cartaoCredito.deleteMany({ where: { usuario_id: userId } }),
+        prisma.contaBancaria.deleteMany({ where: { usuario_id: userId } }),
+        prisma.categoria.deleteMany({ where: { usuario_id: userId } }),
+        prisma.usuario.deleteMany({ where: { id: userId } }),
+      ]);
+    }
+
+    return new Response("ok", { status: 200 });
+  } catch (e) {
+    console.error("Erro no webhook do Clerk:", e);
+    return new Response(
+      `Erro processando ${evt.type}: ${e instanceof Error ? e.message : String(e)}`,
+      { status: 500 }
+    );
   }
-
-  if (evt.type === "user.deleted" && evt.data.id) {
-    await prisma.usuario.delete({ where: { id: evt.data.id } }).catch(() => {});
-  }
-
-  return new Response("ok", { status: 200 });
 }

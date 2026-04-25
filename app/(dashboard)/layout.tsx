@@ -9,14 +9,13 @@ import {
   Wallet, 
   CreditCard, 
   Sparkles, 
-  Menu, 
+  Menu,
   X,
   Settings,
-  LogOut
 } from 'lucide-react';
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-  { icon: Wallet, label: 'Transações', href: '/transacoes' },
+  { icon: Wallet, label: 'Contas', href: '/contas' },
   { icon: CreditCard, label: 'Cartões', href: '/cartoes' },
 ];
 

@@ -80,7 +80,8 @@ model Transacao {
 
   tipo TipoTransacao
 
-  is_recorrente  Boolean @default(false)
-  parcela_atual  Int?
-  total_parcelas Int?
+  is_recorrente   Boolean @default(false)
+  dia_recorrencia Int?
+  parcela_atual   Int?
+  total_parcelas  Int?
 }

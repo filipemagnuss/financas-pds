@@ -1,2 +1,10 @@
 @layer theme, base, clerk, components, utilities;
 @import 'tailwindcss';
+
+.carrossel-hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.carrossel-hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}

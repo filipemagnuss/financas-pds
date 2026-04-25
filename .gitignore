@@ -41,3 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+# AI assistant context files
+CLAUDE.md
+AGENTS.md
