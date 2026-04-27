@@ -33,7 +33,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
         <div>
           <h1 className="text-lg font-bold text-white">Finanças IA</h1>
-          <p className="text-xs text-slate-400">OpenAI Powered</p>
         </div>
       </div>
 
