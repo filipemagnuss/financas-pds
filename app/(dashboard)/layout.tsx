@@ -4,19 +4,21 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { UserButton } from '@clerk/nextjs';
-import { 
-  LayoutDashboard, 
-  Wallet, 
-  CreditCard, 
-  Sparkles, 
+import {
+  LayoutDashboard,
+  Wallet,
+  CreditCard,
+  Sparkles,
   Menu,
   X,
   Settings,
+  ArrowLeftRight,
 } from 'lucide-react';
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: Wallet, label: 'Contas', href: '/contas' },
   { icon: CreditCard, label: 'Cartões', href: '/cartoes' },
+  { icon: ArrowLeftRight, label: 'Transações', href: '/transacoes' },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

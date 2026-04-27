@@ -22,20 +22,32 @@ export default async function CartaoDetalhePage({
   const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
   const fimMes = new Date(agora.getFullYear(), agora.getMonth() + 1, 1);
 
-  const transacoes = await prisma.transacao.findMany({
-    where: {
-      cartao_id: id,
-      data_transacao: { gte: inicioMes, lt: fimMes },
-      tipo: TipoTransacao.DESPESA,
-    },
-    orderBy: { data_transacao: "desc" },
-    include: { categoria: { select: { nome: true } } },
-  });
+  const [transacoesMes, somaEmAberto] = await Promise.all([
+    prisma.transacao.findMany({
+      where: {
+        cartao_id: id,
+        data_transacao: { gte: inicioMes, lt: fimMes },
+        tipo: TipoTransacao.DESPESA,
+      },
+      orderBy: { data_transacao: "desc" },
+      include: { categoria: { select: { nome: true } } },
+    }),
+    prisma.transacao.aggregate({
+      where: {
+        cartao_id: id,
+        tipo: TipoTransacao.DESPESA,
+        data_transacao: { gte: inicioMes },
+      },
+      _sum: { valor: true },
+    }),
+  ]);
 
+  const transacoes = transacoesMes;
   const fatura = transacoes.reduce((acc, t) => acc + Number(t.valor), 0);
+  const limiteUsado = Number(somaEmAberto._sum.valor ?? 0);
   const limiteTotal = Number(cartao.limite_total);
-  const limiteDisponivel = Math.max(limiteTotal - fatura, 0);
-  const percentualUso = limiteTotal > 0 ? Math.min((fatura / limiteTotal) * 100, 100) : 0;
+  const limiteDisponivel = Math.max(limiteTotal - limiteUsado, 0);
+  const percentualUso = limiteTotal > 0 ? Math.min((limiteUsado / limiteTotal) * 100, 100) : 0;
 
   const corBarra =
     percentualUso >= 80

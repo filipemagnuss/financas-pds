@@ -17,22 +17,38 @@ export default async function CartoesPage() {
   const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
   const fimMes = new Date(agora.getFullYear(), agora.getMonth() + 1, 1);
 
-  const usoPorCartao = cartoes.length
-    ? await prisma.transacao.groupBy({
-        by: ["cartao_id"],
-        where: {
-          usuario_id: usuarioId,
-          cartao_id: { in: cartoes.map((c) => c.id) },
-          tipo: TipoTransacao.DESPESA,
-          data_transacao: { gte: inicioMes, lt: fimMes },
-        },
-        _sum: { valor: true },
-      })
-    : [];
+  const [faturaPorCartao, limiteUsadoPorCartao] = cartoes.length
+    ? await Promise.all([
+        prisma.transacao.groupBy({
+          by: ["cartao_id"],
+          where: {
+            usuario_id: usuarioId,
+            cartao_id: { in: cartoes.map((c) => c.id) },
+            tipo: TipoTransacao.DESPESA,
+            data_transacao: { gte: inicioMes, lt: fimMes },
+          },
+          _sum: { valor: true },
+        }),
+        prisma.transacao.groupBy({
+          by: ["cartao_id"],
+          where: {
+            usuario_id: usuarioId,
+            cartao_id: { in: cartoes.map((c) => c.id) },
+            tipo: TipoTransacao.DESPESA,
+            data_transacao: { gte: inicioMes },
+          },
+          _sum: { valor: true },
+        }),
+      ])
+    : [[], []];
 
-  const mapaUso = new Map<string, number>();
-  for (const u of usoPorCartao) {
-    if (u.cartao_id) mapaUso.set(u.cartao_id, Number(u._sum.valor ?? 0));
+  const mapaFatura = new Map<string, number>();
+  for (const u of faturaPorCartao) {
+    if (u.cartao_id) mapaFatura.set(u.cartao_id, Number(u._sum.valor ?? 0));
+  }
+  const mapaLimiteUsado = new Map<string, number>();
+  for (const u of limiteUsadoPorCartao) {
+    if (u.cartao_id) mapaLimiteUsado.set(u.cartao_id, Number(u._sum.valor ?? 0));
   }
 
   return (
@@ -66,10 +82,11 @@ export default async function CartoesPage() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {cartoes.map((c) => {
-            const fatura = mapaUso.get(c.id) ?? 0;
+            const fatura = mapaFatura.get(c.id) ?? 0;
+            const limiteUsado = mapaLimiteUsado.get(c.id) ?? 0;
             const total = Number(c.limite_total);
-            const disponivel = Math.max(total - fatura, 0);
-            const pct = total > 0 ? Math.min((fatura / total) * 100, 100) : 0;
+            const disponivel = Math.max(total - limiteUsado, 0);
+            const pct = total > 0 ? Math.min((limiteUsado / total) * 100, 100) : 0;
             const corBarra =
               pct >= 80
                 ? "from-red-500 to-red-400"

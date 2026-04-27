@@ -6,7 +6,7 @@ export async function getResumoDashboard(usuarioId: string) {
   const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
   const fimMes = new Date(agora.getFullYear(), agora.getMonth() + 1, 1);
 
-  const [contas, cartoes, transacoesMes, ultimasTransacoes, totalTransacoes] = await Promise.all([
+  const [contas, cartoes, transacoesMes, transacoesEmAberto, ultimasTransacoes, totalTransacoes] = await Promise.all([
     prisma.contaBancaria.findMany({
       where: { usuario_id: usuarioId },
       select: { id: true, saldo_atual: true },
@@ -35,6 +35,15 @@ export async function getResumoDashboard(usuarioId: string) {
       },
     }),
     prisma.transacao.findMany({
+      where: {
+        usuario_id: usuarioId,
+        cartao_id: { not: null },
+        tipo: TipoTransacao.DESPESA,
+        data_transacao: { gte: inicioMes },
+      },
+      select: { valor: true, cartao_id: true },
+    }),
+    prisma.transacao.findMany({
       where: { usuario_id: usuarioId },
       orderBy: { data_transacao: "desc" },
       take: 5,
@@ -52,23 +61,35 @@ export async function getResumoDashboard(usuarioId: string) {
 
   const saldoTotal = contas.reduce((acc, c) => acc + Number(c.saldo_atual), 0);
 
-  const usoPorCartao = new Map<string, number>();
+  const faturaPorCartao = new Map<string, number>();
   for (const t of transacoesMes) {
     if (t.cartao_id) {
-      usoPorCartao.set(t.cartao_id, (usoPorCartao.get(t.cartao_id) ?? 0) + Number(t.valor));
+      faturaPorCartao.set(t.cartao_id, (faturaPorCartao.get(t.cartao_id) ?? 0) + Number(t.valor));
+    }
+  }
+
+  const limiteUsadoPorCartao = new Map<string, number>();
+  for (const t of transacoesEmAberto) {
+    if (t.cartao_id) {
+      limiteUsadoPorCartao.set(
+        t.cartao_id,
+        (limiteUsadoPorCartao.get(t.cartao_id) ?? 0) + Number(t.valor)
+      );
     }
   }
 
   const cartoesComUso = cartoes.map((c) => {
-    const usado = usoPorCartao.get(c.id) ?? 0;
+    const fatura = faturaPorCartao.get(c.id) ?? 0;
+    const limiteUsado = limiteUsadoPorCartao.get(c.id) ?? 0;
     const total = Number(c.limite_total);
     return {
       id: c.id,
       nome: c.nome,
       limiteTotal: total,
-      faturaAtual: usado,
-      limiteDisponivel: Math.max(total - usado, 0),
-      percentualUso: total > 0 ? Math.min((usado / total) * 100, 100) : 0,
+      faturaAtual: fatura,
+      limiteUsado,
+      limiteDisponivel: Math.max(total - limiteUsado, 0),
+      percentualUso: total > 0 ? Math.min((limiteUsado / total) * 100, 100) : 0,
       diaFechamento: c.dia_fechamento,
       diaVencimento: c.dia_vencimento,
     };
