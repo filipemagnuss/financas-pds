@@ -13,12 +13,14 @@ import {
   X,
   Settings,
   ArrowLeftRight,
+  Tag,
 } from 'lucide-react';
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: Wallet, label: 'Contas', href: '/contas' },
   { icon: CreditCard, label: 'Cartões', href: '/cartoes' },
   { icon: ArrowLeftRight, label: 'Transações', href: '/transacoes' },
+  { icon: Tag, label: 'Categorias', href: '/categorias' },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

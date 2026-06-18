@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
+import { useState, useTransition, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import {
@@ -42,16 +42,23 @@ export function TransacaoForm({
   const [erro, setErro] = useState<string | undefined>();
   const [pending, startTransition] = useTransition();
 
+  useEffect(() => {
+    if (tipo === "DESPESA" && forma === "cartao") setRecorrente(false);
+  }, [tipo, forma]);
+
   const categoriasFiltradas = useMemo(
     () => categorias.filter((c) => c.tipo === tipo),
     [categorias, tipo]
   );
 
+  const mostrarRecorrencia =
+    tipo === "RECEITA" || (tipo === "DESPESA" && forma === "conta");
+
   function onSubmit(formData: FormData) {
     setErro(undefined);
     formData.set("tipo", tipo);
     formData.set("forma", forma);
-    if (tipo === "RECEITA" && recorrente) {
+    if (mostrarRecorrencia && recorrente) {
       formData.set("is_recorrente", "1");
     } else {
       formData.delete("is_recorrente");
@@ -109,7 +116,7 @@ export function TransacaoForm({
           <TextInput
             id="descricao"
             name="descricao"
-            placeholder={tipo === "RECEITA" ? "Ex: Salário de abril" : "Ex: Mercado"}
+            placeholder={tipo === "RECEITA" ? "Ex: Salário de abril" : "Ex: Aluguel"}
             required
             maxLength={100}
           />
@@ -185,22 +192,59 @@ export function TransacaoForm({
             </Field>
 
             {forma === "conta" ? (
-              <Field label="Conta" htmlFor="conta_id">
-                {semContas ? (
-                  <p className="text-sm text-amber-400">
-                    Você não tem contas cadastradas.
-                  </p>
-                ) : (
-                  <Select id="conta_id" name="conta_id" required>
-                    <option value="">Selecione...</option>
-                    {contas.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.nome}
-                      </option>
-                    ))}
-                  </Select>
-                )}
-              </Field>
+              <>
+                <Field label="Conta" htmlFor="conta_id">
+                  {semContas ? (
+                    <p className="text-sm text-amber-400">
+                      Você não tem contas cadastradas.
+                    </p>
+                  ) : (
+                    <Select id="conta_id" name="conta_id" required>
+                      <option value="">Selecione...</option>
+                      {contas.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.nome}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
+                </Field>
+
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={recorrente}
+                      onChange={(e) => setRecorrente(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-white/20 bg-slate-950 text-emerald-500 focus:ring-emerald-500/30"
+                    />
+                    <div>
+                      <p className="text-sm font-medium text-white">Despesa fixa mensal</p>
+                      <p className="text-xs text-slate-400">
+                        Gera 12 lançamentos nos próximos meses. Ex: aluguel, academia.
+                      </p>
+                    </div>
+                  </label>
+
+                  {recorrente && (
+                    <Field
+                      label="Dia fixo do mês"
+                      htmlFor="dia_recorrencia"
+                      hint="Dia em que a despesa é debitada. Ajustado ao último dia em meses mais curtos."
+                    >
+                      <TextInput
+                        id="dia_recorrencia"
+                        name="dia_recorrencia"
+                        type="number"
+                        min={1}
+                        max={31}
+                        placeholder="5"
+                        required={recorrente}
+                      />
+                    </Field>
+                  )}
+                </div>
+              </>
             ) : (
               <>
                 <Field label="Cartão" htmlFor="cartao_id">
@@ -270,8 +314,7 @@ export function TransacaoForm({
                 <div>
                   <p className="text-sm font-medium text-white">Rendimento fixo</p>
                   <p className="text-xs text-slate-400">
-                    Repete por 12 meses no dia escolhido. Após esse período, será necessário
-                    cadastrar novamente.
+                    Repete por 12 meses no dia escolhido.
                   </p>
                 </div>
               </label>
@@ -280,7 +323,7 @@ export function TransacaoForm({
                 <Field
                   label="Dia fixo do mês"
                   htmlFor="dia_recorrencia"
-                  hint="Dia em que o rendimento entra. Em meses com menos dias, será ajustado para o último dia."
+                  hint="Dia em que o rendimento entra. Ajustado ao último dia em meses mais curtos."
                 >
                   <TextInput
                     id="dia_recorrencia"
