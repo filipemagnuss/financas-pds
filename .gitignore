@@ -45,3 +45,6 @@ next-env.d.ts
 # AI assistant context files
 CLAUDE.md
 AGENTS.md
+
+# clerk configuration (can include secrets)
+/.clerk/

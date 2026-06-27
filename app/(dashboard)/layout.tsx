@@ -11,9 +11,9 @@ import {
   Sparkles,
   Menu,
   X,
-  Settings,
   ArrowLeftRight,
   Tag,
+  Bot,
 } from 'lucide-react';
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
@@ -21,6 +21,7 @@ const menuItems = [
   { icon: CreditCard, label: 'Cartões', href: '/cartoes' },
   { icon: ArrowLeftRight, label: 'Transações', href: '/transacoes' },
   { icon: Tag, label: 'Categorias', href: '/categorias' },
+  { icon: Bot, label: 'Assistente IA', href: '/ia' },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -65,15 +66,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         })}
       </nav>
 
-      <div className="border-t border-white/10 px-3 py-4 space-y-1">
-        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-400 transition-all hover:bg-white/5 hover:text-white">
-          <Settings className="h-5 w-5" /> Configurações
-        </button>
-        <div className="flex w-full items-center justify-between rounded-lg px-3 py-2.5">
-          <div className="flex items-center gap-3 text-sm font-medium text-slate-400">
-             <UserButton />
-             <span>Minha Conta</span>
-          </div>
+      <div className="border-t border-white/10 px-3 py-4">
+        <div className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5">
+          <UserButton />
+          <span className="text-sm font-medium text-slate-400">Minha Conta</span>
         </div>
       </div>
     </div>
